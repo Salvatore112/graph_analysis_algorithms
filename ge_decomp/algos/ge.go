@@ -2,7 +2,6 @@ package gedecomp
 
 import (
 	"container/list"
-	"fmt"
 )
 
 // Graph представляет неориентированный граф.
@@ -264,19 +263,4 @@ func gallaiEdmondsDecomposition(g *Graph) (map[int]bool, map[int]bool, map[int]b
 		}
 	}
 	return D, A, C
-}
-
-// printMatching выводит ребра паросочетания.
-func printMatching(m []int) {
-	printed := make(map[[2]int]bool)
-	for v, u := range m {
-		if u != -1 {
-			key1 := [2]int{v, u}
-			key2 := [2]int{u, v}
-			if !printed[key1] && !printed[key2] {
-				fmt.Printf("%d - %d\n", v, u)
-				printed[key1] = true
-			}
-		}
-	}
 }
