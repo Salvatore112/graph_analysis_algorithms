@@ -8,4 +8,6 @@ require (
 	gotest.tools/v3 v3.5.2
 )
 
+require gonum.org/v1/gonum v0.16.0
+
 require github.com/google/go-cmp v0.7.0 // indirect
