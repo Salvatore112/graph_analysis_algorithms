@@ -1,16 +1,14 @@
-package gedecomp
+package ff
 
 import (
 	"container/list"
 )
 
-// Graph представляет неориентированный граф.
 type Graph struct {
 	n   int
 	adj [][]int
 }
 
-// NewGraph создаёт граф с n вершинами.
 func NewGraph(n int) *Graph {
 	adj := make([][]int, n)
 	for i := 0; i < n; i++ {
@@ -22,13 +20,11 @@ func NewGraph(n int) *Graph {
 	}
 }
 
-// AddEdge добавляет неориентированное ребро между вершинами u и v.
 func (g *Graph) AddEdge(u, v int) {
 	g.adj[u] = append(g.adj[u], v)
 	g.adj[v] = append(g.adj[v], u)
 }
 
-// Blossom реализует алгоритм Эдмондса (blossom) для поиска максимального паросочетания.
 type Blossom struct {
 	n       int
 	graph   [][]int
@@ -39,7 +35,6 @@ type Blossom struct {
 	blossom []bool
 }
 
-// NewBlossom создаёт новый экземпляр алгоритма для графа с n вершинами.
 func NewBlossom(n int, graph [][]int) *Blossom {
 	match := make([]int, n)
 	parent := make([]int, n)
@@ -64,7 +59,6 @@ func NewBlossom(n int, graph [][]int) *Blossom {
 	}
 }
 
-// lca находит наименьшего общего предка для вершин a и b.
 func (b *Blossom) lca(a, b1 int) int {
 	used := make([]bool, b.n)
 	for {
@@ -84,7 +78,6 @@ func (b *Blossom) lca(a, b1 int) int {
 	}
 }
 
-// markPath обновляет родительские ссылки вдоль пути от v до базовой вершины b.
 func (b *Blossom) markPath(v, bbase, x int) {
 	for b.base[v] != bbase {
 		b.blossom[b.base[v]] = true
@@ -95,8 +88,6 @@ func (b *Blossom) markPath(v, bbase, x int) {
 	}
 }
 
-// findPath ищет дополняющий путь, начиная с вершины root.
-// Если путь найден, возвращается конечная вершина, иначе -1.
 func (b *Blossom) findPath(root int) int {
 	for i := 0; i < b.n; i++ {
 		b.used[i] = false
@@ -144,7 +135,6 @@ func (b *Blossom) findPath(root int) int {
 	return -1
 }
 
-// augmentPath выполняет аугментацию паросочетания вдоль найденного пути, начиная с start.
 func (b *Blossom) augmentPath(start int) {
 	v := start
 	for v != -1 {
@@ -159,7 +149,6 @@ func (b *Blossom) augmentPath(start int) {
 	}
 }
 
-// Solve перебирает все вершины и для каждой свободной вершины ищет дополняющий путь.
 func (b *Blossom) Solve() []int {
 	for i := 0; i < b.n; i++ {
 		if b.match[i] == -1 {
@@ -171,96 +160,133 @@ func (b *Blossom) Solve() []int {
 	return b.match
 }
 
-// edmondsBlossomMatching является обёрткой для алгоритма Эдмондса.
 func edmondsBlossomMatching(g *Graph) []int {
 	solver := NewBlossom(g.n, g.adj)
 	return solver.Solve()
 }
 
-// maximumMatching возвращает найденное паросочетание.
 func maximumMatching(g *Graph) []int {
 	return edmondsBlossomMatching(g)
 }
 
-// edmondsMaximumMatchingSize возвращает размер паросочетания (число рёбер).
-func edmondsMaximumMatchingSize(g *Graph) int {
-	m := maximumMatching(g)
-	count := 0
-	for _, v := range m {
-		if v != -1 {
-			count++
-		}
-	}
-	return count / 2
+// func edmondsMaximumMatchingSize(g *Graph) int {
+// 	m := maximumMatching(g)
+// 	count := 0
+// 	for _, v := range m {
+// 		if v != -1 {
+// 			count++
+// 		}
+// 	}
+// 	return count / 2
+// }
+
+type FFactorInput struct {
+	Original *Graph
+	F        []int
 }
 
-// gallaiEdmondsDecomposition вычисляет разложение Галея–Эдмондса по найденному паросочетанию.
-func gallaiEdmondsDecomposition(g *Graph) (map[int]bool, map[int]bool, map[int]bool) {
-	n := g.n
-	match := maximumMatching(g)
-	originalSize := 0
-	for _, v := range match {
-		if v != -1 {
-			originalSize++
-		}
-	}
-	originalSize /= 2
+func FindFFactor(input FFactorInput) (bool, [][2]int) {
+	G := input.Original
+	f := input.F
 
-	D := make(map[int]bool)
-	for v := 0; v < n; v++ {
-		if match[v] == -1 {
-			D[v] = true
+	n := G.n
+	degree := make([]int, n)
+	for u := 0; u < n; u++ {
+		degree[u] = len(G.adj[u])
+		if f[u] > degree[u] {
+			return false, nil
 		}
 	}
 
-	for v := 0; v < n; v++ {
-		if D[v] {
-			continue
+	sMap := make([][]int, n)
+	vertexCounter := 0
+	edgeMap := make(map[int][2]int)
+
+	for u := 0; u < n; u++ {
+		sMap[u] = make([]int, len(G.adj[u]))
+		for i, w := range G.adj[u] {
+			sMap[u][i] = vertexCounter
+			edgeMap[vertexCounter] = [2]int{u, w}
+			vertexCounter++
 		}
-		tempGraph := NewGraph(n)
-		for u := 0; u < n; u++ {
-			if u == v {
+	}
+
+	GStar := NewGraph(0)
+	GStar.adj = make([][]int, vertexCounter)
+	GStar.n = vertexCounter
+
+	used := make([][]bool, n)
+	for u := range used {
+		used[u] = make([]bool, len(G.adj[u]))
+	}
+
+	for u := 0; u < n; u++ {
+		for i, w := range G.adj[u] {
+			if used[u][i] {
 				continue
 			}
-			for _, w := range g.adj[u] {
-				if w == v || u >= w {
-					continue
+			// найдём индекс обратного ребра
+			var j int
+			for k, v := range G.adj[w] {
+				if v == u {
+					j = k
+					break
 				}
-				tempGraph.AddEdge(u, w)
 			}
-		}
-		tempMatch := maximumMatching(tempGraph)
-		tempSize := 0
-		for _, x := range tempMatch {
-			if x != -1 {
-				tempSize++
-			}
-		}
-		tempSize /= 2
-		if tempSize == originalSize {
-			D[v] = true
+			su := sMap[u][i]
+			sw := sMap[w][j]
+			GStar.AddEdge(su, sw)
+			used[u][i] = true
+			used[w][j] = true
 		}
 	}
 
-	A := make(map[int]bool)
-	for d := range D {
-		for _, neighbor := range g.adj[d] {
-			if !D[neighbor] {
-				A[neighbor] = true
+	// T(v)
+	for v := 0; v < n; v++ {
+		delta := degree[v] - f[v]
+		for i := 0; i < delta; i++ {
+			tv := vertexCounter
+			vertexCounter++
+			GStar.adj = append(GStar.adj, []int{})
+			GStar.n++
+			for _, sv := range sMap[v] {
+				GStar.AddEdge(tv, sv)
 			}
 		}
 	}
 
-	all := make(map[int]bool)
-	for i := 0; i < n; i++ {
-		all[i] = true
-	}
+	matching := maximumMatching(GStar)
 
-	C := make(map[int]bool)
-	for i := 0; i < n; i++ {
-		if !D[i] && !A[i] {
-			C[i] = true
+	matchedCount := 0
+	for _, m := range matching {
+		if m != -1 {
+			matchedCount++
 		}
 	}
-	return D, A, C
+	if matchedCount != GStar.n {
+		return false, nil
+	}
+
+	fFactorEdges := make([][2]int, 0)
+	seen := make(map[[2]int]bool)
+
+	for v, u := range matching {
+		if u == -1 || v > u {
+			continue
+		}
+		vu, ok1 := edgeMap[v]
+		uv, ok2 := edgeMap[u]
+		if ok1 && ok2 {
+			// Убедимся, что это одно и то же ребро
+			if vu[0] == uv[1] && vu[1] == uv[0] {
+				e := [2]int{vu[0], vu[1]}
+				if !seen[e] && !seen[[2]int{e[1], e[0]}] {
+					fFactorEdges = append(fFactorEdges, e)
+					seen[e] = true
+				}
+			}
+		}
+	}
+
+	return true, fFactorEdges
 }
