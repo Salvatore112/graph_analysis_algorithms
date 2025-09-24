@@ -8,9 +8,7 @@ func MaxMatching(graph map[int][]int) [][2]int {
 	}
 
 	for _, nbrs := range graph {
-		for _, v := range nbrs {
-			nodes = append(nodes, v)
-		}
+		nodes = append(nodes, nbrs...)
 	}
 
 	uniq := make(map[int]bool)
